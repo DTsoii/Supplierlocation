@@ -7,7 +7,7 @@ gmaps = googlemaps.Client(key='AIzaSyAflcddk_x1pC8rPooMAaAwkpvuZ8rvJ3c')
 # Read data from CSV file
 # Ensure the path to your CSV file is correct and the file exists
 # Correct the file path if necessary
-df = pd.read_csv('/Users/deborahtsoi/Desktop/airforce_supplier.csv')
+df = pd.read_csv('/Users/Dtsoi/Desktop/airforce_supplier.csv')
 
 # Ensure that the DataFrame has the necessary columns
 required_columns = {'Supplier name', 'Country'}
@@ -47,7 +47,7 @@ df[['Address', 'City', 'State']] = df.apply(
     axis=1
 )
 # Enriched country-language mapping
-def assign_language(country):
+def assign_language(row):
     country_language_map = {
         # Include an exhaustive list of countries and their primary languages
         'AFGHANISTAN': 'Pashto, Dari',
