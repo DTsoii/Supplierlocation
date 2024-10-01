@@ -7,7 +7,7 @@ gmaps = googlemaps.Client(key='AIzaSyAflcddk_x1pC8rPooMAaAwkpvuZ8rvJ3c')
 # Read data from CSV file
 # Ensure the path to your CSV file is correct and the file exists
 # Correct the file path if necessary
-df = pd.read_csv('/Users/daphnetsoi/Desktop/airforce_supplier.csv')
+df = pd.read_csv('/Users/deborahtsoi/Desktop/airforce_supplier.csv')
 
 # Ensure that the DataFrame has the necessary columns
 required_columns = {'Supplier name', 'Country'}
@@ -51,7 +51,7 @@ df[['Address', 'City']] = df.apply(
 )
 
 # Enriched country-language mapping
-def assign_language(country):
+def assign_language(row):
     country_language_map = {
         # Include an exhaustive list of countries and their primary languages
         'AFGHANISTAN': 'Pashto, Dari',
@@ -142,11 +142,9 @@ def assign_language(country):
         'UNITED STATES': 'English',
         'HONG KONG': 'Traditional Chinese',
         'VIETNAM': 'Vietnamese',
-        # Add more countries as needed
-    }
-    return country_language_map.get(country.upper(), 'English')
-
-   # Mapping of Indian states to languages
+        }
+    
+    # Mapping of Indian states to languages
     india_state_language_map = {
         'Andhra Pradesh': 'Telugu',
         'Arunachal Pradesh': 'English',
@@ -208,7 +206,7 @@ def classify_script(language):
         'Albanian', 'Maltese', 'Turkish', 'Vietnamese', 'Filipino', 'Afrikaans',
         'Irish', 'Estonian', 'Latvian', 'Lithuanian', 'Swahili', 'Malay', 'Indonesian',
         'Hungarian', 'Czech', 'Slovak', 'Polish', 'Croatian', 'Slovene', 'Slovenian',
-        'Spanish', 'Catalan', 'Galician', 'Basque', 'Zulu', 'Xhosa'
+        'Spanish', 'Catalan', 'Galician', 'Basque', 'Zulu', 'Xhosa', 'Konkani', 'Hindi', 'Bengali', 'Gujarati', 'Marathi', 'Punjabi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Odia', 'Assamese', 'Urdu', 'Sindhi', 'Kashmiri'
         # Add more Roman script languages as needed
     ]
     primary_language = language.split(',')[0].strip()
@@ -220,7 +218,7 @@ def classify_script(language):
 df['Roman/ non-roman'] = df['Language'].apply(classify_script)
 
 # Keep only the specified columns
-df = df[['Supplier name', 'Country', 'Address', 'City', 'Roman/ non-roman', 'Language']]
+df = df[['Supplier Name', 'Country', 'Address', 'City', 'State', 'Roman/ non-roman', 'Language']]
 
 # Output to CSV
 df.to_csv('programmatic_search_ready.csv', index=False)
