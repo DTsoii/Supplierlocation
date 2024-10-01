@@ -14,7 +14,6 @@ required_columns = {'Supplier name', 'Country'}
 if not required_columns.issubset(df.columns):
     raise ValueError(f"The CSV file must contain the columns: {required_columns}")
 
-# Function to retrieve address and city using Google Maps Places API
 def get_place_details(supplier_name, country):
     query = f"{supplier_name}, {country}"
     try:
@@ -27,31 +26,28 @@ def get_place_details(supplier_name, country):
                 formatted_address = result.get('formatted_address')
                 address_components = result.get('address_components', [])
                 city = None
+                state = None
                 for component in address_components:
                     if 'locality' in component['types']:
                         city = component['long_name']
-                        break
-                    elif 'administrative_area_level_2' in component['types']:
-                        city = component['long_name']
-                    elif 'administrative_area_level_1' in component['types'] and city is None:
-                        city = component['long_name']
-                return pd.Series([formatted_address, city])
+                    elif 'administrative_area_level_1' in component['types']:
+                        state = component['long_name']
+                return pd.Series([formatted_address, city, state])
             else:
-                return pd.Series([None, None])
+                return pd.Series([None, None, None])
         else:
-            return pd.Series([None, None])
+            return pd.Series([None, None, None])
     except Exception as e:
         print(f"Error retrieving data for {supplier_name}: {e}")
-        return pd.Series([None, None])
+        return pd.Series([None, None, None])
 
 # Apply the function to your DataFrame
-df[['Address', 'City']] = df.apply(
+df[['Address', 'City', 'State']] = df.apply(
     lambda row: get_place_details(row['Supplier name'], row['Country']),
     axis=1
 )
-
 # Enriched country-language mapping
-def assign_language(row):
+def assign_language(country):
     country_language_map = {
         # Include an exhaustive list of countries and their primary languages
         'AFGHANISTAN': 'Pashto, Dari',
@@ -198,6 +194,8 @@ def assign_language(row):
 
 df['Language'] = df.apply(assign_language, axis=1)
 
+df['Language'] = df.apply(assign_language, axis=1)
+
 # Mapping languages to scripts
 def classify_script(language):
     roman_languages = [
@@ -218,7 +216,7 @@ def classify_script(language):
 df['Roman/ non-roman'] = df['Language'].apply(classify_script)
 
 # Keep only the specified columns
-df = df[['Supplier Name', 'Country', 'Address', 'City', 'State', 'Roman/ non-roman', 'Language']]
+df = df[['Supplier name', 'Country', 'Address', 'City', 'State', 'Roman/ non-roman', 'Language']]
 
 # Output to CSV
 df.to_csv('programmatic_search_ready.csv', index=False)
