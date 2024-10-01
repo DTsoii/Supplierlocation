@@ -1,0 +1,177 @@
+import pandas as pd
+import googlemaps
+
+# Replace 'YOUR_GOOGLE_MAPS_API_KEY' with your actual API key
+gmaps = googlemaps.Client(key='AIzaSyAflcddk_x1pC8rPooMAaAwkpvuZ8rvJ3c')
+
+# Read data from CSV file
+# Ensure the path to your CSV file is correct and the file exists
+# Correct the file path if necessary
+df = pd.read_csv('/Users/daphnetsoi/Desktop/airforce_supplier.csv')
+
+# Ensure that the DataFrame has the necessary columns
+required_columns = {'Supplier name', 'Country'}
+if not required_columns.issubset(df.columns):
+    raise ValueError(f"The CSV file must contain the columns: {required_columns}")
+
+# Function to retrieve address and city using Google Maps Places API
+def get_place_details(supplier_name, country):
+    query = f"{supplier_name}, {country}"
+    try:
+        places_result = gmaps.places(query)
+        if places_result['status'] == 'OK' and places_result['results']:
+            place_id = places_result['results'][0]['place_id']
+            place_details = gmaps.place(place_id=place_id, language='en')
+            if place_details['status'] == 'OK':
+                result = place_details['result']
+                formatted_address = result.get('formatted_address')
+                address_components = result.get('address_components', [])
+                city = None
+                for component in address_components:
+                    if 'locality' in component['types']:
+                        city = component['long_name']
+                        break
+                    elif 'administrative_area_level_2' in component['types']:
+                        city = component['long_name']
+                    elif 'administrative_area_level_1' in component['types'] and city is None:
+                        city = component['long_name']
+                return pd.Series([formatted_address, city])
+            else:
+                return pd.Series([None, None])
+        else:
+            return pd.Series([None, None])
+    except Exception as e:
+        print(f"Error retrieving data for {supplier_name}: {e}")
+        return pd.Series([None, None])
+
+# Apply the function to your DataFrame
+df[['Address', 'City']] = df.apply(
+    lambda row: get_place_details(row['Supplier name'], row['Country']),
+    axis=1
+)
+
+# Enriched country-language mapping
+def assign_language(country):
+    country_language_map = {
+        # Include an exhaustive list of countries and their primary languages
+        'AFGHANISTAN': 'Pashto, Dari',
+        'ALBANIA': 'Albanian',
+        'ALGERIA': 'Arabic',
+        'ANGOLA': 'Portuguese',
+        'ARGENTINA': 'Spanish',
+        'ARMENIA': 'Armenian',
+        'AUSTRALIA': 'English',
+        'AUSTRIA': 'German',
+        'AZERBAIJAN': 'Azerbaijani',
+        'BAHRAIN': 'Arabic',
+        'BANGLADESH': 'Bengali',
+        'BARBADOS': 'English',
+        'BELARUS': 'Belarusian, Russian',
+        'BELGIUM': 'Dutch, French, German',
+        'BRAZIL': 'Portuguese',
+        'BULGARIA': 'Bulgarian',
+        'CAMBODIA': 'Khmer',
+        'CANADA': 'English, French',
+        'CHILE': 'Spanish',
+        'CHINA': 'Simplified Chinese',
+        'COLOMBIA': 'Spanish',
+        'COSTA RICA': 'Spanish',
+        'CROATIA': 'Croatian',
+        'CZECH REPUBLIC': 'Czech',
+        'DENMARK': 'Danish',
+        'EGYPT': 'Arabic',
+        'ESTONIA': 'Estonian',
+        'ETHIOPIA': 'Amharic',
+        'FINLAND': 'Finnish, Swedish',
+        'FRANCE': 'French',
+        'GERMANY': 'German',
+        'GHANA': 'English',
+        'GREECE': 'Greek',
+        'HUNGARY': 'Hungarian',
+        'ICELAND': 'Icelandic',
+        'INDIA': 'Hindi, English',
+        'INDONESIA': 'Indonesian',
+        'IRAN': 'Persian',
+        'IRAQ': 'Arabic, Kurdish',
+        'IRELAND': 'English, Irish',
+        'ISRAEL': 'Hebrew, Arabic',
+        'ITALY': 'Italian',
+        'JAPAN': 'Japanese',
+        'JORDAN': 'Arabic',
+        'KENYA': 'Swahili, English',
+        'KUWAIT': 'Arabic',
+        'LATVIA': 'Latvian',
+        'LEBANON': 'Arabic',
+        'LIBYA': 'Arabic',
+        'LITHUANIA': 'Lithuanian',
+        'LUXEMBOURG': 'Luxembourgish, French, German',
+        'MALAYSIA': 'Malay',
+        'MEXICO': 'Spanish',
+        'MOROCCO': 'Arabic',
+        'MYANMAR': 'Burmese',
+        'NEPAL': 'Nepali',
+        'NETHERLANDS': 'Dutch',
+        'NEW ZEALAND': 'English, Māori',
+        'NIGERIA': 'English',
+        'NORWAY': 'Norwegian',
+        'OMAN': 'Arabic',
+        'PAKISTAN': 'Urdu, English',
+        'PERU': 'Spanish',
+        'PHILIPPINES': 'Filipino, English',
+        'POLAND': 'Polish',
+        'PORTUGAL': 'Portuguese',
+        'QATAR': 'Arabic',
+        'ROMANIA': 'Romanian',
+        'RUSSIA': 'Russian',
+        'SAUDI ARABIA': 'Arabic',
+        'SINGAPORE': 'English',
+        'SLOVAKIA': 'Slovak',
+        'SOUTH AFRICA': 'English, Afrikaans, Zulu',
+        'SOUTH KOREA': 'Korean',
+        'SPAIN': 'Spanish',
+        'SRI LANKA': 'Sinhala, Tamil',
+        'SWEDEN': 'Swedish',
+        'SWITZERLAND': 'German, French, Italian, Romansh',
+        'SYRIA': 'Arabic',
+        'TAIWAN': 'Traditional Chinese',
+        'THAILAND': 'Thai',
+        'TURKEY': 'Turkish',
+        'UKRAINE': 'Ukrainian',
+        'UNITED ARAB EMIRATES': 'Arabic',
+        'UNITED KINGDOM': 'English',
+        'UNITED STATES': 'English',
+        'HONG KONG': 'Traditional Chinese',
+        'VIETNAM': 'Vietnamese',
+        # Add more countries as needed
+    }
+    return country_language_map.get(country.upper(), 'English')
+
+df['Language'] = df['Country'].apply(assign_language)
+
+# Mapping languages to scripts
+def classify_script(language):
+    roman_languages = [
+        'English', 'French', 'German', 'Spanish', 'Portuguese', 'Italian', 'Dutch',
+        'Swedish', 'Norwegian', 'Danish', 'Finnish', 'Icelandic', 'Romanian',
+        'Albanian', 'Maltese', 'Turkish', 'Vietnamese', 'Filipino', 'Afrikaans',
+        'Irish', 'Estonian', 'Latvian', 'Lithuanian', 'Swahili', 'Malay', 'Indonesian',
+        'Hungarian', 'Czech', 'Slovak', 'Polish', 'Croatian', 'Slovene', 'Slovenian',
+        'Spanish', 'Catalan', 'Galician', 'Basque', 'Zulu', 'Xhosa'
+        # Add more Roman script languages as needed
+    ]
+    primary_language = language.split(',')[0].strip()
+    if primary_language in roman_languages:
+        return 'Roman'
+    else:
+        return 'Non-Roman'
+
+df['Roman/ non-roman'] = df['Language'].apply(classify_script)
+
+# Keep only the specified columns
+df = df[['Supplier name', 'Country', 'Address', 'City', 'Roman/ non-roman', 'Language']]
+
+# Output to CSV
+df.to_csv('programmatic_search_ready.csv', index=False)
+
+# Print the DataFrame
+print(df)
